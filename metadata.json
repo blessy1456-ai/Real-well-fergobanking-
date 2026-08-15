@@ -1,0 +1,6 @@
+{
+  "name": "Well Fergo Banking",
+  "description": "Premier Well Fergo online banking application with signature red and gold styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
