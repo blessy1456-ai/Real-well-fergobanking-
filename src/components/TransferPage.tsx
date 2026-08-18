@@ -12,32 +12,40 @@ import {
   Loader2,
   ShieldCheck,
   ShieldAlert,
-  XCircle,
-  Clock
+  Clock,
+  Receipt,
+  FileCheck,
+  CheckCircle2
 } from 'lucide-react';
-import { PageType, UserProfile, Transaction } from '../types';
+import { PageType, UserProfile, Transaction, WireReceipt } from '../types';
 
 interface TransferPageProps {
   user: UserProfile;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   setCurrentPage: (page: PageType) => void;
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   addNotification: (title: string, message: string, type?: 'info' | 'security' | 'service' | 'alert') => void;
+  setActiveReceipt: (receipt: WireReceipt) => void;
 }
 
 export const TransferPage: React.FC<TransferPageProps> = ({
   user,
+  setUser,
   setCurrentPage,
   setTransactions,
   addNotification,
+  setActiveReceipt,
 }) => {
   const [transferName, setTransferName] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [showVerificationNotice, setShowVerificationNotice] = useState(false);
+  const [generatedReceipt, setGeneratedReceipt] = useState<WireReceipt | null>(null);
 
   // Total loading duration (40 seconds)
   const TOTAL_LOADING_SECONDS = 40;
@@ -48,7 +56,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
     if (isProcessing) {
       timer = setTimeout(() => {
         setIsProcessing(false);
-        setShowVerificationNotice(true);
+        finalizePendingTransfer();
       }, TOTAL_LOADING_SECONDS * 1000);
     }
 
@@ -59,35 +67,96 @@ export const TransferPage: React.FC<TransferPageProps> = ({
 
   const handleSendTransferSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    const numAmt = parseFloat(amount) || 0;
+    if (numAmt <= 0) {
+      setErrorMessage('Please enter a valid transfer amount.');
+      return;
+    }
+
+    if (numAmt > user.balance) {
+      setErrorMessage(`Insufficient funds. Your current available balance is $${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD.`);
+      return;
+    }
+
     setIsProcessing(true);
   };
 
-  const handleConfirmNoticeAndReturn = () => {
-    setShowVerificationNotice(false);
-
-    // Record declined transaction in ledger (NO money deducted)
+  const finalizePendingTransfer = () => {
     const numAmt = parseFloat(amount) || 0;
-    if (numAmt > 0) {
-      const newTx: Transaction = {
-        id: `wf-tx-${Date.now()}`,
-        title: `Transfer to ${transferName}`,
-        subtitle: `${bankName || 'External Bank'} • Declined (Branch Verification Required)`,
-        amount: numAmt,
-        type: 'debit',
-        category: 'transfer',
-        date: 'Just now',
-        status: 'Declined - In-Person Verification Required',
-        iconName: 'XCircle',
-      };
-      setTransactions((prev) => [newTx, ...prev]);
-      addNotification(
-        'Transfer Declined - Branch Verification Required',
-        `Transfer of $${numAmt.toLocaleString()} USD to ${transferName} was declined. No funds were debited. Please visit your local bank branch for verification.`,
-        'alert'
-      );
-    }
+    const wireFee = 30.00;
+    const totalDeducted = numAmt;
+    const now = new Date();
+    const formattedDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+    const confCode = `OW0000${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
-    // Return to dashboard
+    // 1. Deduct money from the user balance
+    setUser((prev) => ({
+      ...prev,
+      balance: Math.max(0, prev.balance - totalDeducted),
+    }));
+
+    // 2. Create Receipt Data matching Wells Fargo Wire Money structure
+    const newReceipt: WireReceipt = {
+      id: `wire-rec-${Date.now()}`,
+      recipientName: transferName || 'Dana Pease',
+      recipientCountry: 'United States',
+      recipientAccountLast4: accountNumber ? accountNumber.slice(-4) : '4204',
+      fromAccountName: 'EVERYDAY CHECKING',
+      fromAccountLast4: user.accountNumber.slice(-4) || '3382',
+      amount: numAmt,
+      fees: wireFee,
+      totalAmount: numAmt + wireFee,
+      sendOn: formattedDate,
+      deliverBy: formattedDate,
+      memo: memo || 'Pay off on 2 Acres',
+      status: 'Pending',
+      confirmationNumber: confCode,
+      noticeDetails: {
+        openingFee: 100,
+        upgradingTax: 99,
+        totalFee: 199,
+      }
+    };
+
+    setGeneratedReceipt(newReceipt);
+    setActiveReceipt(newReceipt);
+
+    // 3. Add to Transactions history with 'Pending' status
+    const newTx: Transaction = {
+      id: `wf-tx-${Date.now()}`,
+      title: `Wire Transfer to ${transferName || 'Dana Pease'}`,
+      subtitle: `${bankName || 'External Bank'} • Everyday Checking (...${user.accountNumber.slice(-4) || '3382'})`,
+      amount: numAmt,
+      type: 'debit',
+      category: 'transfer',
+      date: 'Today, ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'Pending',
+      iconName: 'Clock',
+      receiptData: newReceipt,
+    };
+
+    setTransactions((prev) => [newTx, ...prev]);
+
+    // 4. Send Official Notification
+    addNotification(
+      'Wire Transfer Submitted (Pending)',
+      `Transfer of $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD is Pending. $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been debited. Please review the official bank security requirement.`,
+      'alert'
+    );
+
+    // 5. Open Official Bank Security Notice Modal
+    setShowVerificationNotice(true);
+  };
+
+  const handleGoToReceipt = () => {
+    setShowVerificationNotice(false);
+    setCurrentPage('receipt');
+  };
+
+  const handleReturnToDashboard = () => {
+    setShowVerificationNotice(false);
     setCurrentPage('dashboard');
   };
 
@@ -104,9 +173,19 @@ export const TransferPage: React.FC<TransferPageProps> = ({
           <span>Back to Accounts</span>
         </button>
 
-        <span className="text-xs text-slate-700 bg-white px-3.5 py-2 rounded-lg border border-slate-300 shadow-xs font-medium">
-          From: <strong className="text-[#D71E28]">Everyday Checking (...3382)</strong> • <strong className="font-mono text-slate-900">${user.balance.toLocaleString()} USD</strong>
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage('receipt')}
+            className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-700 border border-slate-300 hover:border-[#D71E28] hover:text-[#D71E28] transition shadow-xs cursor-pointer"
+          >
+            <Receipt className="h-3.5 w-3.5 text-[#D71E28]" />
+            <span>View Wire Receipt</span>
+          </button>
+
+          <span className="hidden sm:inline-block text-xs text-slate-700 bg-white px-3.5 py-2 rounded-lg border border-slate-300 shadow-xs font-medium">
+            Available: <strong className="font-mono text-slate-900">${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</strong>
+          </span>
+        </div>
       </div>
 
       {/* Main Transfer Form Card */}
@@ -134,6 +213,13 @@ export const TransferPage: React.FC<TransferPageProps> = ({
 
         <div className="p-6 sm:p-8 space-y-6">
 
+          {errorMessage && (
+            <div className="p-3.5 rounded-lg bg-red-50 border border-red-300 text-[#D71E28] text-xs font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Form Inputs */}
           <form onSubmit={handleSendTransferSubmit} className="space-y-4">
             
@@ -144,22 +230,23 @@ export const TransferPage: React.FC<TransferPageProps> = ({
               </label>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-300 flex justify-between items-center text-xs">
                 <div>
-                  <div className="font-bold text-slate-900">Everyday Checking (...3382)</div>
-                  <div className="text-slate-500 text-[11px]">Sofia Lincoin • Primary Wire Account</div>
+                  <div className="font-bold text-slate-900">Everyday Checking (...{user.accountNumber.slice(-4) || '3382'})</div>
+                  <div className="text-slate-500 text-[11px]">{user.name} • Primary Wire Account</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-emerald-700 font-mono text-sm">${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                  <div className="text-[10px] text-slate-400">Available balance</div>
+                  <div className="font-bold font-mono text-slate-900">${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                  <div className="text-slate-500 text-[11px]">Available Funds</div>
                 </div>
               </div>
             </div>
 
+            {/* Recipient Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
-              {/* Transfer Name (Recipient) */}
+              {/* Beneficiary Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Recipient Name / Beneficiary
+                  Beneficiary / Recipient Name
                 </label>
                 <div className="relative">
                   <UserCheck className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -168,16 +255,16 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                     required
                     value={transferName}
                     onChange={(e) => setTransferName(e.target.value)}
-                    placeholder="Beneficiary full legal name"
+                    placeholder="e.g. Dana Pease"
                     className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Bank Name */}
+              {/* Destination Bank Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Recipient Bank Name
+                  Destination Bank Name
                 </label>
                 <div className="relative">
                   <Landmark className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -186,7 +273,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                     required
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
-                    placeholder="e.g. Chase, Bank of America, Citibank"
+                    placeholder="e.g. Chase, Bank of America, Citi"
                     className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
                   />
                 </div>
@@ -194,12 +281,13 @@ export const TransferPage: React.FC<TransferPageProps> = ({
 
             </div>
 
+            {/* Account Number & Amount */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              {/* Account Number */}
+
+              {/* Account Number / IBAN */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Recipient Account Number / IBAN
+                  Account Number / IBAN
                 </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -208,7 +296,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                     required
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
-                    placeholder="e.g. 4821-9920-1102"
+                    placeholder="e.g. 98214204"
                     className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm font-mono text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
                   />
                 </div>
@@ -228,8 +316,8 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                     required
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm font-mono font-bold text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
+                    placeholder="e.g. 23073.67"
+                    className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm font-mono text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
                   />
                 </div>
               </div>
@@ -239,7 +327,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
             {/* Memo */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Memo / Purpose
+                Message to Recipient's Bank (Memo)
               </label>
               <div className="relative">
                 <FileText className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -247,7 +335,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                   type="text"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  placeholder="e.g. Invoice payment, personal, bill"
+                  placeholder="e.g. Pay off on 2 Acres"
                   className="w-full rounded-lg bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 border border-slate-300 focus:border-[#D71E28] focus:ring-1 focus:ring-[#D71E28] focus:outline-none"
                 />
               </div>
@@ -260,7 +348,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#D71E28] hover:bg-[#b8141d] py-3 px-4 text-sm font-bold text-white shadow-md transition cursor-pointer"
               >
                 <Send className="h-4 w-4" />
-                <span>Submit Transfer</span>
+                <span>Submit Wire Transfer</span>
               </button>
 
               <button
@@ -312,12 +400,12 @@ export const TransferPage: React.FC<TransferPageProps> = ({
         </div>
       )}
 
-      {/* 2. OFFICIAL BANK SECURITY NOTICE MODAL (PAYMENT DECLINED - FUNDS NOT SENT) */}
+      {/* 2. OFFICIAL BANK SECURITY NOTICE MODAL (TRANSFER PENDING - FUNDS DEDUCTED) */}
       {showVerificationNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-lg rounded-2xl border border-slate-300 bg-white p-6 sm:p-7 shadow-2xl space-y-5">
             
-            {/* Header with Declined Badge */}
+            {/* Header with Pending Badge */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <div className="h-11 w-11 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-[#D71E28] shrink-0">
@@ -333,9 +421,9 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                 </div>
               </div>
 
-              <span className="inline-flex items-center gap-1 bg-red-100 text-[#D71E28] text-[10px] font-black px-2.5 py-1 rounded-md border border-red-300 uppercase tracking-wide">
-                <XCircle className="h-3.5 w-3.5" />
-                Declined
+              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-1 rounded-md border border-amber-300 uppercase tracking-wide">
+                <Clock className="h-3.5 w-3.5" />
+                Pending
               </span>
             </div>
 
@@ -347,53 +435,48 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                   Official Bank Security Notice
                 </div>
                 <p className="text-sm font-bold leading-relaxed text-red-950">
-                  Please kindly visit the bank for some verification before completing this transfer.
+                  Kindly go to our nearest bank and make the payment for the account. The account-opening fee is $100, and the account-upgrading tax is $99, making the total payment required $199 before completing this transfer.
                 </p>
               </div>
             </div>
 
-            {/* Explicit Notice that NO funds were debited */}
-            <div className="bg-amber-50 rounded-xl p-3.5 border border-amber-200 flex items-center gap-3 text-amber-900 text-xs">
-              <ShieldAlert className="h-5 w-5 text-amber-700 shrink-0" />
-              <div>
-                <span className="font-bold">Payment Status: Declined. </span>
-                <span>No funds have been debited from your account. Your current balance remains fully protected and unchanged.</span>
-              </div>
-            </div>
-
-            {/* Attempted Transfer Summary */}
-            <div className="text-xs text-slate-600 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between">
-                <span>Beneficiary:</span>
-                <span className="font-bold text-slate-900">{transferName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Destination Bank:</span>
-                <span className="font-bold text-slate-900">{bankName || 'External Bank'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Account Number:</span>
-                <span className="font-mono text-slate-900">{accountNumber}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2">
-                <span>Attempted Amount:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  ${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+            {/* Status confirmation that funds were placed on Pending settlement */}
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs text-slate-700">
+              <div className="flex justify-between items-center font-bold text-slate-900">
+                <span>Transfer Status:</span>
+                <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 font-mono">
+                  Pending (Funds Held for Settlement)
                 </span>
               </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1 text-[#D71E28] font-bold">
+              <div className="flex justify-between items-center text-slate-600">
                 <span>Amount Debited:</span>
-                <span className="font-mono">$0.00 USD (Declined)</span>
+                <span className="font-mono font-bold text-[#D71E28]">
+                  -${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>New Available Balance:</span>
+                <span className="font-mono font-bold text-slate-900">
+                  ${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                </span>
               </div>
             </div>
 
-            {/* Action Button */}
-            <div>
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
               <button
-                onClick={handleConfirmNoticeAndReturn}
+                onClick={handleGoToReceipt}
                 className="w-full rounded-xl bg-[#D71E28] hover:bg-[#b8141d] py-3.5 text-xs font-bold text-white transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>Acknowledge & Return to Dashboard</span>
+                <Receipt className="h-4 w-4" />
+                <span>View Wire Money Receipt (Details)</span>
+              </button>
+
+              <button
+                onClick={handleReturnToDashboard}
+                className="w-full rounded-xl bg-slate-100 hover:bg-slate-200 py-3 text-xs font-bold text-slate-700 transition cursor-pointer"
+              >
+                <span>Return to Accounts Dashboard</span>
               </button>
             </div>
 
