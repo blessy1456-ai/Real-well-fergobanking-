@@ -4,7 +4,8 @@ import {
   UserProfile, 
   Transaction, 
   CreditCardItem, 
-  NotificationItem 
+  NotificationItem,
+  WireReceipt
 } from './types';
 import { 
   INITIAL_USER, 
@@ -16,6 +17,7 @@ import { Navbar } from './components/Navbar';
 import { LoginPage } from './components/LoginPage';
 import { Dashboard } from './components/Dashboard';
 import { TransferPage } from './components/TransferPage';
+import { ReceiptPage } from './components/ReceiptPage';
 import { ProfilePage } from './components/ProfilePage';
 import { NotificationsPage } from './components/NotificationsPage';
 import { X, ShieldAlert, CheckCircle2 } from 'lucide-react';
@@ -26,6 +28,7 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [creditCards, setCreditCards] = useState<CreditCardItem[]>(INITIAL_CREDIT_CARDS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [activeReceipt, setActiveReceipt] = useState<WireReceipt | null>(null);
 
   /* Toast Notification Banner */
   const [toast, setToast] = useState<{ title: string; message: string; type?: string } | null>(null);
@@ -109,15 +112,26 @@ export default function App() {
                   setCreditCards={setCreditCards}
                   setCurrentPage={setCurrentPage}
                   addNotification={addNotification}
+                  setActiveReceipt={setActiveReceipt}
                 />
               )}
 
               {currentPage === 'transfer' && (
                 <TransferPage
                   user={user}
+                  setUser={setUser}
                   setCurrentPage={setCurrentPage}
                   setTransactions={setTransactions}
                   addNotification={addNotification}
+                  setActiveReceipt={setActiveReceipt}
+                />
+              )}
+
+              {currentPage === 'receipt' && (
+                <ReceiptPage
+                  receipt={activeReceipt}
+                  user={user}
+                  setCurrentPage={setCurrentPage}
                 />
               )}
 
@@ -148,22 +162,17 @@ export default function App() {
                     <span className="hover:underline cursor-pointer">Terms of Use</span>
                     <span className="hover:underline cursor-pointer">Security Guarantee</span>
                     <span className="hover:underline cursor-pointer">Online Banking Agreement</span>
-                    <span className="hover:underline cursor-pointer">Report Fraud</span>
                   </div>
-                  <span className="font-bold text-slate-800">
-                    Well Fergo N.A. Member FDIC
-                  </span>
+                  <span>Equal Housing Lender • Member FDIC</span>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400">
-                  <p>© 2026 Well Fergo Online Banking. All rights reserved. Equal Housing Lender ⌂</p>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+                  <p>© 2026 Well Fergo Bank, N.A. All rights reserved. 256-Bit SSL Encrypted Banking Portal.</p>
                   <p>Deposit products offered by Well Fergo Bank, N.A. Member FDIC.</p>
                 </div>
               </div>
             </footer>
 
           </div>
-
         </div>
       )}
 
