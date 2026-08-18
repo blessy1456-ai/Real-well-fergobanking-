@@ -1,6 +1,7 @@
 import React from 'react';
 import { PageType, UserProfile } from '../types';
 import { 
+  Home,
   LayoutDashboard, 
   Send, 
   Bell, 
@@ -11,7 +12,10 @@ import {
   ShieldCheck,
   Search,
   Lock,
-  ChevronDown
+  ChevronDown,
+  ArrowLeftRight,
+  ArrowDownToLine,
+  Menu
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
@@ -84,38 +88,56 @@ export const Navbar: React.FC<NavbarProps> = ({
             <nav className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage('dashboard')}
-                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   currentPage === 'dashboard'
                     ? 'bg-[#b3141d] text-white shadow-inner border border-red-900/40'
                     : 'text-red-100 hover:bg-[#b8141d] hover:text-white'
                 }`}
               >
-                <LayoutDashboard className="h-4 w-4" />
+                <Home className="h-4 w-4" />
                 <span>Accounts</span>
               </button>
 
               <button
                 onClick={() => setCurrentPage('transfer')}
-                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 ${
-                  currentPage === 'transfer'
+                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  currentPage === 'transfer' || currentPage === 'receipt'
                     ? 'bg-[#b3141d] text-white shadow-inner border border-red-900/40'
                     : 'text-red-100 hover:bg-[#b8141d] hover:text-white'
                 }`}
               >
-                <Send className="h-4 w-4" />
-                <span>Transfer & Pay</span>
+                <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center text-[9px] font-bold">
+                  $
+                </div>
+                <span>Transfer</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('transfer')}
+                className="px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 text-red-100 hover:bg-[#b8141d] hover:text-white cursor-pointer"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                <span>Zelle®</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentPage('dashboard')}
+                className="px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 text-red-100 hover:bg-[#b8141d] hover:text-white cursor-pointer"
+              >
+                <ArrowDownToLine className="h-4 w-4" />
+                <span>Deposit</span>
               </button>
 
               <button
                 onClick={() => setCurrentPage('profile')}
-                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   currentPage === 'profile'
                     ? 'bg-[#b3141d] text-white shadow-inner border border-red-900/40'
                     : 'text-red-100 hover:bg-[#b8141d] hover:text-white'
                 }`}
               >
-                <User className="h-4 w-4" />
-                <span>Security & Profile</span>
+                <Menu className="h-4 w-4" />
+                <span>Menu</span>
               </button>
             </nav>
           </div>
@@ -126,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Notification Bell */}
             <button
               onClick={() => setCurrentPage('notifications')}
-              className={`relative p-2 rounded-lg transition ${
+              className={`relative p-2 rounded-lg transition cursor-pointer ${
                 currentPage === 'notifications'
                   ? 'bg-[#b3141d] text-white'
                   : 'text-red-100 hover:bg-[#b8141d] hover:text-white'
@@ -181,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage('notifications')}
-              className="relative p-1.5 rounded-md text-white hover:bg-red-800"
+              className="relative p-1.5 rounded-md text-white hover:bg-red-800 cursor-pointer"
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
@@ -193,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => setCurrentPage('profile')}
-              className="p-0.5 rounded-full ring-1 ring-white"
+              className="p-0.5 rounded-full ring-1 ring-white cursor-pointer"
             >
               <img
                 src={user.avatarUrl}
@@ -204,7 +226,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onLogout}
-              className="px-2.5 py-1 rounded bg-white text-[#D71E28] text-[11px] font-bold"
+              className="px-2.5 py-1 rounded bg-white text-[#D71E28] text-[11px] font-bold cursor-pointer"
             >
               Sign Off
             </button>
@@ -212,53 +234,66 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation Bar (Wells Fargo Mobile App Style) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-300 bg-white py-1 px-1 shadow-lg md:hidden">
+      {/* Wells Fargo Mobile Bottom Navigation Bar (Accounts, Transfer, Zelle®, Deposit, Menu) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-slate-300 bg-white py-1.5 px-1 shadow-lg md:hidden select-none">
+        
+        {/* 1. Accounts */}
         <button
           onClick={() => setCurrentPage('dashboard')}
-          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition ${
-            currentPage === 'dashboard' ? 'text-[#D71E28] font-bold' : 'text-slate-500 hover:text-slate-800'
+          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition cursor-pointer ${
+            currentPage === 'dashboard' ? 'text-[#D71E28] font-bold' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <LayoutDashboard className="h-5 w-5" />
+          <Home className={`h-5 w-5 ${currentPage === 'dashboard' ? 'stroke-[2.2]' : 'stroke-[1.6]'}`} />
           <span>Accounts</span>
         </button>
 
+        {/* 2. Transfer */}
         <button
           onClick={() => setCurrentPage('transfer')}
-          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition ${
-            currentPage === 'transfer' ? 'text-[#D71E28] font-bold' : 'text-slate-500 hover:text-slate-800'
+          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition cursor-pointer ${
+            currentPage === 'transfer' || currentPage === 'receipt' ? 'text-[#D71E28] font-bold' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Send className="h-5 w-5" />
-          <span>Transfer & Pay</span>
+          <div className={`h-5 w-5 rounded-full border flex items-center justify-center text-[10px] font-bold ${
+            currentPage === 'transfer' || currentPage === 'receipt' ? 'border-[#D71E28] text-[#D71E28]' : 'border-slate-600 text-slate-600'
+          }`}>
+            $
+          </div>
+          <span>Transfer</span>
         </button>
 
+        {/* 3. Zelle® */}
         <button
-          onClick={() => setCurrentPage('notifications')}
-          className={`relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition ${
-            currentPage === 'notifications' ? 'text-[#D71E28] font-bold' : 'text-slate-500 hover:text-slate-800'
-          }`}
+          onClick={() => setCurrentPage('transfer')}
+          className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] text-slate-600 hover:text-[#D71E28] transition cursor-pointer"
         >
-          <Bell className="h-5 w-5" />
-          <span>Alerts</span>
-          {unreadCount > 0 && (
-            <span className="absolute top-0.5 right-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#D71E28] px-1 text-[8px] font-bold text-white">
-              {unreadCount}
-            </span>
-          )}
+          <ArrowLeftRight className="h-5 w-5 stroke-[1.6]" />
+          <span>Zelle®</span>
         </button>
 
+        {/* 4. Deposit */}
+        <button
+          onClick={() => setCurrentPage('dashboard')}
+          className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] text-slate-600 hover:text-[#D71E28] transition cursor-pointer"
+        >
+          <ArrowDownToLine className="h-5 w-5 stroke-[1.6]" />
+          <span>Deposit</span>
+        </button>
+
+        {/* 5. Menu */}
         <button
           onClick={() => setCurrentPage('profile')}
-          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition ${
-            currentPage === 'profile' ? 'text-[#D71E28] font-bold' : 'text-slate-500 hover:text-slate-800'
+          className={`flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] transition cursor-pointer ${
+            currentPage === 'profile' ? 'text-[#D71E28] font-bold' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <User className="h-5 w-5" />
-          <span>Security & Menu</span>
+          <Menu className={`h-5 w-5 ${currentPage === 'profile' ? 'stroke-[2.2]' : 'stroke-[1.6]'}`} />
+          <span>Menu</span>
         </button>
+
       </nav>
     </>
   );
 };
+
