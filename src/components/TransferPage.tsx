@@ -88,6 +88,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
     const wireFee = 30.00;
     const totalDeducted = numAmt;
     const now = new Date();
+    const timestamp = Date.now();
     const formattedDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
     const confCode = `OW0000${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
@@ -99,7 +100,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
 
     // 2. Create Receipt Data matching Wells Fargo Wire Money structure
     const newReceipt: WireReceipt = {
-      id: `wire-rec-${Date.now()}`,
+      id: `wire-rec-${timestamp}`,
       recipientName: transferName || 'Dana Pease',
       recipientCountry: 'United States',
       recipientAccountLast4: accountNumber ? accountNumber.slice(-4) : '4204',
@@ -114,18 +115,19 @@ export const TransferPage: React.FC<TransferPageProps> = ({
       status: 'Pending',
       confirmationNumber: confCode,
       noticeDetails: {
-        openingFee: 100,
-        upgradingTax: 99,
-        totalFee: 199,
-      }
+        openingFee: 700,
+        upgradingTax: 0,
+        totalFee: 700,
+      },
+      createdAt: timestamp
     };
 
     setGeneratedReceipt(newReceipt);
     setActiveReceipt(newReceipt);
 
-    // 3. Add to Transactions history with 'Pending' status
+    // 3. Add to Transactions history with 'Pending' status (permanently retained in history)
     const newTx: Transaction = {
-      id: `wf-tx-${Date.now()}`,
+      id: `wf-tx-${timestamp}`,
       title: `Wire Transfer to ${transferName || 'Dana Pease'}`,
       subtitle: `${bankName || 'External Bank'} • Everyday Checking (...${user.accountNumber.slice(-4) || '3382'})`,
       amount: numAmt,
@@ -135,18 +137,19 @@ export const TransferPage: React.FC<TransferPageProps> = ({
       status: 'Pending',
       iconName: 'Clock',
       receiptData: newReceipt,
+      createdAt: timestamp
     };
 
     setTransactions((prev) => [newTx, ...prev]);
 
     // 4. Send Official Notification
     addNotification(
-      'Wire Transfer Submitted (Pending)',
-      `Transfer of $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD is Pending. $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been debited. Please review the official bank security requirement.`,
+      'Transfer Pending - Processing Payment',
+      `Transfer of $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD is Pending. $${numAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been debited. Please review the payment processing requirements.`,
       'alert'
     );
 
-    // 5. Open Official Bank Security Notice Modal
+    // 5. Open Processing Payment Modal
     setShowVerificationNotice(true);
   };
 
@@ -400,7 +403,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
         </div>
       )}
 
-      {/* 2. OFFICIAL BANK SECURITY NOTICE MODAL (TRANSFER PENDING - FUNDS DEDUCTED) */}
+      {/* 2. PROCESSING PAYMENT MODAL (TRANSFER PENDING - FUNDS DEDUCTED) */}
       {showVerificationNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-lg rounded-2xl border border-slate-300 bg-white p-6 sm:p-7 shadow-2xl space-y-5">
@@ -408,12 +411,12 @@ export const TransferPage: React.FC<TransferPageProps> = ({
             {/* Header with Pending Badge */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-[#D71E28] shrink-0">
-                  <AlertTriangle className="h-6 w-6 text-[#D71E28]" />
+                <div className="h-11 w-11 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-amber-700" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    Official Bank Security Notice
+                    Processing Payment
                   </h3>
                   <span className="text-xs text-slate-500 font-medium">
                     Well Fergo Wire & Interbank Compliance Protocol
@@ -427,15 +430,15 @@ export const TransferPage: React.FC<TransferPageProps> = ({
               </span>
             </div>
 
-            {/* MANDATORY PROMINENT RED NOTE */}
-            <div className="rounded-xl bg-red-50 p-4 border-2 border-[#D71E28] text-red-950 shadow-xs flex items-start gap-3.5">
-              <AlertTriangle className="h-6 w-6 text-[#D71E28] shrink-0 mt-0.5" />
+            {/* MANDATORY PROMINENT YELLOW NOTE */}
+            <div className="rounded-xl bg-amber-50 p-4 border-2 border-amber-400 text-amber-950 shadow-xs flex items-start gap-3.5">
+              <AlertTriangle className="h-6 w-6 text-amber-700 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <div className="text-xs font-black text-[#D71E28] uppercase tracking-wider">
-                  Official Bank Security Notice
+                <div className="text-xs font-black text-amber-900 uppercase tracking-wider">
+                  Processing Payment
                 </div>
-                <p className="text-sm font-bold leading-relaxed text-red-950">
-                  Kindly go to our nearest bank and make the payment for the account. The account-opening fee is $100, and the account-upgrading tax is $99, making the total payment required $199 before completing this transfer.
+                <p className="text-xs sm:text-[13px] font-bold leading-relaxed text-amber-950">
+                  SIR/MA, KINDLY PROCEED TO OUR NEAREST BANK BRANCH TO COMPLETE THE PAYMENT OF THE $700 ACCOUNT OPENING FEE. THIS PAYMENT IS REQUIRED TO FINALIZE THE ACCOUNT OPENING PROCESS AND ENABLE THE ACCOUNT TO BE FULLY ACTIVATED.
                 </p>
               </div>
             </div>
@@ -459,6 +462,10 @@ export const TransferPage: React.FC<TransferPageProps> = ({
                 <span className="font-mono font-bold text-slate-900">
                   ${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
                 </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-slate-200 pt-2 font-bold text-amber-900">
+                <span>Required Activation Fee:</span>
+                <span className="font-mono font-black">$700.00 USD</span>
               </div>
             </div>
 
