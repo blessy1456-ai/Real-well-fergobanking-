@@ -5,8 +5,8 @@ export const INITIAL_USER: UserProfile = {
   email: '',
   phone: '+1 (555) 019-2834',
   accountNumber: '8829-4019-3382',
-  accountType: 'Everyday Checking & Preferred Premier',
-  balance: 106000.00,
+  accountType: 'Business Checking',
+  balance: 101000.00,
   currency: 'USD',
   avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia&backgroundColor=ffdfbf,ffd5dc,d1d4f9,c0aede,b6e3f4&accessoriesProbability=0',
   address: '742 Evergreen Terrace, San Francisco, CA 94107',
@@ -33,7 +33,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     type: 'debit',
     category: 'utility',
     date: 'Yesterday, 04:15 PM',
-    status: 'Completed',
+    status: 'Refund',
     iconName: 'Zap',
   },
   {
@@ -121,7 +121,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-2',
     title: 'Monthly Statement Ready',
-    message: 'Your official account statement for Sofia Lincoin ($106,000.00 USD balance) is now available for download.',
+    message: 'Your official account statement for Sofia Lincoin ($101,000.00 USD balance) is now available for download.',
     time: '1 hour ago',
     read: false,
     type: 'info',
