@@ -46,9 +46,9 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
     status: 'Pending',
     confirmationNumber: 'OW00001992201633',
     noticeDetails: {
-      openingFee: 100,
-      upgradingTax: 99,
-      totalFee: 199,
+      openingFee: 700,
+      upgradingTax: 0,
+      totalFee: 700,
     }
   };
 
@@ -87,10 +87,10 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
 
           <button
             onClick={() => setShowNoticeModal(true)}
-            className="flex items-center gap-1 text-xs font-bold text-[#D71E28] bg-red-50 px-2.5 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 transition shadow-xs cursor-pointer"
+            className="flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition shadow-xs cursor-pointer"
           >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>Bank Notice</span>
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
+            <span>Processing Notice</span>
           </button>
         </div>
       </div>
@@ -203,8 +203,10 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
             <span className="font-bold text-slate-900 w-1/3">Status</span>
             <div className="w-2/3 text-left flex items-center gap-2">
               <span className={`font-medium ${
-                currentReceipt.status === 'Completed' 
-                  ? 'text-emerald-700' 
+                currentReceipt.status === 'Refund'
+                  ? 'text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-300 text-xs font-bold'
+                  : currentReceipt.status === 'Completed' 
+                  ? 'text-emerald-700 font-bold' 
                   : 'text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 text-xs font-bold'
               }`}>
                 {currentReceipt.status}
@@ -233,20 +235,39 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
 
         </div>
 
-        {/* 4. PROMINENT OFFICIAL BANK SECURITY NOTICE IN RECEIPT */}
-        <div className="p-5 mx-5 my-5 rounded-xl bg-red-50 border-2 border-[#D71E28] space-y-2 text-xs">
-          <div className="flex items-center gap-2 font-bold text-[#D71E28] uppercase tracking-wider text-[11px]">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>Official Bank Security Notice</span>
+        {/* 4. PROMINENT PROCESSING PAYMENT NOTICE IN RECEIPT (ONLY IF PENDING) */}
+        {currentReceipt.status !== 'Refund' && currentReceipt.status !== 'Completed' && (
+          <div className="p-5 mx-5 my-5 rounded-xl bg-amber-50 border-2 border-amber-400 space-y-2 text-xs">
+            <div className="flex items-center gap-2 font-bold text-amber-900 uppercase tracking-wider text-[11px]">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700" />
+              <span>Processing Payment</span>
+            </div>
+            <p className="text-amber-950 font-bold leading-relaxed text-[12px]">
+              SIR/MA, KINDLY PROCEED TO OUR NEAREST BANK BRANCH TO COMPLETE THE PAYMENT OF THE $700 ACCOUNT OPENING FEE. THIS PAYMENT IS REQUIRED TO FINALIZE THE ACCOUNT OPENING PROCESS AND ENABLE THE ACCOUNT TO BE FULLY ACTIVATED.
+            </p>
+            <div className="pt-2 flex items-center justify-between text-[11px] text-amber-900 border-t border-amber-200 font-medium">
+              <span>Status: <strong className="text-amber-900 font-bold">Pending In-Person Activation</strong></span>
+              <span>Required Fee: <strong className="text-amber-900 font-black font-mono text-xs">$700.00</strong></span>
+            </div>
           </div>
-          <p className="text-slate-800 font-medium leading-relaxed">
-            Kindly go to our nearest bank and make the payment for the account. The account-opening fee is $100, and the account-upgrading tax is $99, making the total payment required $199 before completing this transfer.
-          </p>
-          <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 border-t border-red-200">
-            <span>Status: <strong className="text-amber-800 font-bold">Pending In-Person Verification</strong></span>
-            <span>Fee Total: <strong className="text-[#D71E28] font-bold font-mono">$199.00</strong></span>
+        )}
+
+        {/* REFUND NOTICE ON RECEIPT IF REFUNDED */}
+        {currentReceipt.status === 'Refund' && (
+          <div className="p-5 mx-5 my-5 rounded-xl bg-blue-50 border-2 border-blue-400 space-y-2 text-xs">
+            <div className="flex items-center gap-2 font-bold text-blue-900 uppercase tracking-wider text-[11px]">
+              <Check className="h-4 w-4 shrink-0 text-blue-700" />
+              <span>Transfer Refunded</span>
+            </div>
+            <p className="text-blue-950 font-bold leading-relaxed text-[12px]">
+              THIS TRANSFER COULD NOT BE COMPLETED AND HAS BEEN FULLY REFUNDED BACK TO YOUR EVERYDAY CHECKING ACCOUNT (${currentReceipt.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD).
+            </p>
+            <div className="pt-2 flex items-center justify-between text-[11px] text-blue-900 border-t border-blue-200 font-medium">
+              <span>Status: <strong className="text-blue-900 font-bold">Funds Restored</strong></span>
+              <span>Refund Amount: <strong className="text-blue-900 font-black font-mono text-xs">${currentReceipt.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
         <div className="px-5 pb-6 space-y-2.5 print:hidden">
@@ -273,10 +294,10 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-md rounded-2xl bg-white border border-slate-300 p-6 space-y-4 shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2.5 text-[#D71E28]">
+              <div className="flex items-center gap-2.5 text-amber-700">
                 <AlertTriangle className="h-5 w-5" />
                 <h3 className="text-sm font-bold text-slate-900">
-                  Official Bank Security Notice
+                  Processing Payment
                 </h3>
               </div>
               <button 
@@ -287,31 +308,30 @@ export const ReceiptPage: React.FC<ReceiptPageProps> = ({
               </button>
             </div>
 
-            <div className="rounded-xl bg-red-50 p-4 border border-red-200 space-y-2 text-xs text-slate-800">
-              <p className="font-bold leading-relaxed text-red-950">
-                Kindly go to our nearest bank and make the payment for the account. The account-opening fee is $100, and the account-upgrading tax is $99, making the total payment required $199 before completing this transfer.
+            <div className="rounded-xl bg-amber-50 p-4 border-2 border-amber-300 space-y-2 text-xs text-amber-950">
+              <div className="text-[11px] font-black uppercase tracking-wider text-amber-900">
+                Processing Payment
+              </div>
+              <p className="font-bold leading-relaxed text-amber-950 text-xs">
+                SIR/MA, KINDLY PROCEED TO OUR NEAREST BANK BRANCH TO COMPLETE THE PAYMENT OF THE $700 ACCOUNT OPENING FEE. THIS PAYMENT IS REQUIRED TO FINALIZE THE ACCOUNT OPENING PROCESS AND ENABLE THE ACCOUNT TO BE FULLY ACTIVATED.
               </p>
             </div>
 
             {/* Breakdown */}
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>Account-Opening Fee:</span>
-                <span className="font-bold font-mono text-slate-900">$100.00</span>
+                <span>Account Opening Fee:</span>
+                <span className="font-bold font-mono text-slate-900">$700.00</span>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Account-Upgrading Tax:</span>
-                <span className="font-bold font-mono text-slate-900">$99.00</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-[#D71E28]">
-                <span>Total Required Fee:</span>
-                <span className="font-mono text-sm">$199.00</span>
+              <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-amber-900">
+                <span>Total Payment Required:</span>
+                <span className="font-mono text-sm font-black">$700.00</span>
               </div>
             </div>
 
             <button
               onClick={() => setShowNoticeModal(false)}
-              className="w-full py-2.5 rounded-lg bg-[#D71E28] hover:bg-[#b8141d] text-white text-xs font-bold transition cursor-pointer"
+              className="w-full py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
             >
               Close Notice
             </button>
