@@ -129,7 +129,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
     const newTx: Transaction = {
       id: `wf-tx-${timestamp}`,
       title: `Wire Transfer to ${transferName || 'Dana Pease'}`,
-      subtitle: `${bankName || 'External Bank'} • Everyday Checking (...${user.accountNumber.slice(-4) || '3382'})`,
+      subtitle: `${bankName || 'External Bank'} • Business Checking (...${user.accountNumber.slice(-4) || '3382'})`,
       amount: numAmt,
       type: 'debit',
       category: 'transfer',
@@ -233,7 +233,7 @@ export const TransferPage: React.FC<TransferPageProps> = ({
               </label>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-300 flex justify-between items-center text-xs">
                 <div>
-                  <div className="font-bold text-slate-900">Everyday Checking (...{user.accountNumber.slice(-4) || '3382'})</div>
+                  <div className="font-bold text-slate-900">Business Checking (...{user.accountNumber.slice(-4) || '3382'})</div>
                   <div className="text-slate-500 text-[11px]">{user.name} • Primary Wire Account</div>
                 </div>
                 <div className="text-right">

@@ -236,38 +236,29 @@ export const ZellePage: React.FC<ZellePageProps> = ({
     const timestamp = Date.now();
 
     setTimeout(() => {
-      // 1. Deduct balance
-      setUser(prev => ({
-        ...prev,
-        balance: Math.max(0, prev.balance - amt)
-      }));
-
-      // 2. Track limit
-      setUsedToday(prev => prev + amt);
-
-      // 3. Add to Transactions
+      // 1. Transaction recorded with Refund status, balance kept intact / refunded
       const newTx: Transaction = {
         id: `zelle-${timestamp}`,
         title: `Zelle® to ${recipName}`,
-        subtitle: `${recipHandle} • Everyday Checking (...${user.accountNumber.slice(-4) || '3382'})`,
+        subtitle: `${recipHandle} • Business Checking (...${user.accountNumber.slice(-4) || '3382'})`,
         amount: amt,
         type: 'debit',
         category: 'transfer',
         date: 'Today, ' + timeStr,
-        status: 'Completed',
+        status: 'Refund',
         iconName: 'Send',
         createdAt: timestamp
       };
       setTransactions(prev => [newTx, ...prev]);
 
-      // 4. Notification
+      // 2. Notification
       addNotification(
-        'Zelle® Payment Sent',
-        `$${amt.toFixed(2)} sent to ${recipName}. Confirmation: ${confCode}.`,
-        'service'
+        'Zelle® Transfer Failed & Refunded',
+        `Payment of $${amt.toFixed(2)} USD to ${recipName} could not be processed. Full refund has been issued to your account.`,
+        'alert'
       );
 
-      // 5. Store record for receipt
+      // 3. Store record for receipt
       setLastSentDetails({
         amount: amt,
         recipientName: recipName,
@@ -275,12 +266,12 @@ export const ZellePage: React.FC<ZellePageProps> = ({
         confCode,
         date: `${dateStr} at ${timeStr}`,
         memo: sendMemo.trim() || 'Payment',
-        fromAccount: `Everyday Checking (...${user.accountNumber.slice(-4) || '3382'})`
+        fromAccount: `Business Checking (...${user.accountNumber.slice(-4) || '3382'})`
       });
 
       setIsProcessingSend(false);
       setSendStep('success');
-    }, 1500);
+    }, 2200);
   };
 
   const handleResetSend = () => {
@@ -710,7 +701,7 @@ export const ZellePage: React.FC<ZellePageProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
                 <div>
                   <span className="text-slate-500 block">From Account</span>
-                  <strong className="text-slate-900">Everyday Checking (...{user.accountNumber.slice(-4) || '3382'})</strong>
+                  <strong className="text-slate-900">Business Checking (...{user.accountNumber.slice(-4) || '3382'})</strong>
                 </div>
                 <div className="text-right">
                   <span className="text-slate-500 block">Available</span>
@@ -833,7 +824,7 @@ export const ZellePage: React.FC<ZellePageProps> = ({
                 <div className="p-3 flex justify-between bg-slate-50/50">
                   <span className="text-slate-500">From Account</span>
                   <span className="text-slate-900 font-medium">
-                    Everyday Checking (...{user.accountNumber.slice(-4) || '3382'})
+                    Business Checking (...{user.accountNumber.slice(-4) || '3382'})
                   </span>
                 </div>
 
@@ -850,7 +841,7 @@ export const ZellePage: React.FC<ZellePageProps> = ({
 
               {/* Wells Fargo Legal Disclaimer */}
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-relaxed">
-                By clicking <strong>Send Now</strong>, you authorize Wells Fargo to debit your Everyday Checking account for the amount shown and transfer the funds to the recipient.
+                By clicking <strong>Send Now</strong>, you authorize Wells Fargo to debit your Business Checking account for the amount shown and transfer the funds to the recipient.
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-1">
@@ -884,25 +875,25 @@ export const ZellePage: React.FC<ZellePageProps> = ({
             </div>
           )}
 
-          {/* STEP 4: SUCCESS RECEIPT */}
+          {/* STEP 4: REFUND RECEIPT */}
           {sendStep === 'success' && lastSentDetails && (
             <div className="space-y-4 text-center py-2">
-              <div className="h-14 w-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border-2 border-emerald-200">
-                <CheckCircle2 className="h-8 w-8" />
+              <div className="h-14 w-14 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center mx-auto border-2 border-blue-200">
+                <ArrowDownLeft className="h-8 w-8" />
               </div>
 
               <div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  Transfer Completed
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+                  Status: Refund
                 </span>
-                <h2 className="text-lg font-bold text-slate-900 mt-2">
-                  Payment Sent to {lastSentDetails.recipientName}
+                <h2 className="text-lg font-bold text-slate-900 mt-2.5">
+                  Payment Processing Failed & Refunded
                 </h2>
-                <p className="text-2xl font-black font-mono text-[#7414CA] mt-1">
+                <p className="text-2xl font-black font-mono text-slate-900 mt-1">
                   ${lastSentDetails.amount.toFixed(2)} USD
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Delivered to {lastSentDetails.recipientHandle}
+                <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1 leading-relaxed">
+                  The recipient banking network could not process this transfer. A full refund has been credited back to your account.
                 </p>
               </div>
 
@@ -913,16 +904,24 @@ export const ZellePage: React.FC<ZellePageProps> = ({
                   <strong className="font-mono text-slate-900">{lastSentDetails.confCode}</strong>
                 </div>
                 <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-500">Intended Recipient</span>
+                  <span className="text-slate-900 font-bold">{lastSentDetails.recipientName} ({lastSentDetails.recipientHandle})</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-500">Transaction Status</span>
+                  <span className="text-blue-700 font-bold">Refund Processed</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-1.5">
                   <span className="text-slate-500">Date & Time</span>
                   <span className="text-slate-800">{lastSentDetails.date}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                  <span className="text-slate-500">From Account</span>
+                  <span className="text-slate-500">Refunded To</span>
                   <span className="text-slate-800">{lastSentDetails.fromAccount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Memo</span>
-                  <span className="text-slate-800">{lastSentDetails.memo}</span>
+                  <span className="text-slate-800 italic">{lastSentDetails.memo}</span>
                 </div>
               </div>
 
@@ -1317,7 +1316,7 @@ export const ZellePage: React.FC<ZellePageProps> = ({
             </p>
             <div className="p-2.5 rounded-lg bg-white border border-slate-200 flex justify-between items-center">
               <div>
-                <strong className="text-slate-900 block">Everyday Checking</strong>
+                <strong className="text-slate-900 block">Business Checking</strong>
                 <span className="text-[10px] font-mono text-slate-500">Account Ending ...{user.accountNumber.slice(-4) || '3382'}</span>
               </div>
               <span className="text-xs font-semibold text-[#7414CA]">Default</span>

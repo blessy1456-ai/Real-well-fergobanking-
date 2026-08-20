@@ -16,6 +16,7 @@ import {
   FileText,
   Building2,
   ArrowRight,
+  ArrowDownLeft,
   Info,
   AlertCircle,
   Clock,
@@ -263,7 +264,7 @@ export const CheckDepositModal: React.FC<{
                   onChange={(e) => setSelectedAccount(e.target.value as any)}
                   className="w-full rounded-xl bg-white border border-slate-300 py-2 px-3 text-xs text-slate-900 font-bold focus:border-[#D71E28] focus:outline-none"
                 >
-                  <option value="checking">Business Checking ...4025 (${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })})</option>
+                  <option value="checking">Business Checking ...{user.accountNumber.slice(-4) || '3382'} (${user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })})</option>
                   <option value="savings">Way2Save® Savings ...9476 ($5,000.00)</option>
                 </select>
               </div>
@@ -390,7 +391,7 @@ export const CheckDepositModal: React.FC<{
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">To Account:</span>
-                <span className="font-bold text-slate-900">{selectedAccount === 'checking' ? 'Business Checking ...4025' : 'Way2Save Savings ...9476'}</span>
+                <span className="font-bold text-slate-900">{selectedAccount === 'checking' ? `Business Checking ...${user.accountNumber.slice(-4) || '3382'}` : 'Way2Save Savings ...9476'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Availability:</span>
@@ -1061,7 +1062,6 @@ export const FargoAssistantModal: React.FC<{
     'Send money with Zelle®',
     'What is my routing number?',
     'View monthly statements',
-    'Manage debit & credit cards',
     'Find nearest ATM'
   ];
 
@@ -1093,12 +1093,6 @@ export const FargoAssistantModal: React.FC<{
           onClose();
           onOpenStatements();
         }, 1200);
-      } else if (q.includes('card') || q.includes('lock')) {
-        reply = `Opening Card Hub where you can lock/unlock your cards, change limits, or view virtual card details.`;
-        setTimeout(() => {
-          onClose();
-          onOpenCardHub();
-        }, 1200);
       } else if (q.includes('atm') || q.includes('branch')) {
         reply = `Opening the Wells Fargo ATM & Branch locator to find fee-free ATMs near you.`;
         setTimeout(() => {
@@ -1106,7 +1100,7 @@ export const FargoAssistantModal: React.FC<{
           onOpenAtm();
         }, 1200);
       } else {
-        reply = `I can help you with balance checks, sending money with Zelle®, locking your cards, finding ATMs, and viewing your statements. What would you like to do?`;
+        reply = `I can help you with balance checks, sending money with Zelle®, finding ATMs, and viewing your statements. What would you like to do?`;
       }
 
       setMessages((prev) => [...prev, { role: 'fargo', text: reply }]);
@@ -1184,29 +1178,81 @@ export const ElectricityModal: React.FC<{
   onClose: () => void;
   onPayBill: (amount: number) => void;
 }> = ({ isOpen, onClose, onPayBill }) => {
-  const [billPaid, setBillPaid] = useState(false);
+  const [payState, setPayState] = useState<'idle' | 'processing' | 'refunded'>('idle');
 
   const handlePay = () => {
-    onPayBill(245.80);
-    setBillPaid(true);
+    setPayState('processing');
     setTimeout(() => {
-      setBillPaid(false);
-      onClose();
-    }, 1800);
+      onPayBill(245.80);
+      setPayState('refunded');
+    }, 2400);
+  };
+
+  const handleReset = () => {
+    setPayState('idle');
+    onClose();
   };
 
   return (
-    <ModalBase isOpen={isOpen} onClose={onClose} title="Bill Pay / Pacific Power & Light" icon={<Zap className="h-5 w-5 text-amber-500" />}>
+    <ModalBase isOpen={isOpen} onClose={handleReset} title="Bill Pay / Pacific Power & Light" icon={<Zap className="h-5 w-5 text-amber-500" />}>
       <div className="space-y-4">
-        {billPaid ? (
-          <div className="py-8 text-center space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700">
-              <Check className="h-6 w-6" />
+        {payState === 'processing' && (
+          <div className="py-8 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 border-2 border-amber-300 text-amber-600 animate-pulse">
+              <Clock className="h-7 w-7 animate-spin" />
             </div>
-            <h4 className="text-base font-bold text-slate-900">Bill Paid Successfully!</h4>
-            <p className="text-xs text-slate-500">$245.80 debited from Business Checking.</p>
+            <div>
+              <h4 className="text-base font-bold text-slate-900">Processing Payment...</h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Connecting to Pacific Power & Light billing gateway and authorizing funds...
+              </p>
+            </div>
+            <div className="w-48 mx-auto bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-[#D71E28] h-full w-2/3 animate-pulse"></div>
+            </div>
           </div>
-        ) : (
+        )}
+
+        {payState === 'refunded' && (
+          <div className="py-6 text-center space-y-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 border-2 border-blue-300 text-blue-700">
+              <ArrowDownLeft className="h-7 w-7" />
+            </div>
+            <div>
+              <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider bg-blue-100 text-blue-900 px-3 py-1 rounded-full border border-blue-200 mb-2">
+                Status: Refund
+              </span>
+              <h4 className="text-base font-bold text-slate-900">Payment Could Not Be Processed</h4>
+              <p className="text-xs text-slate-600 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                The utility billing network cannot process this transaction at this time. A full refund of <strong className="text-slate-900 font-mono">$245.80 USD</strong> has been credited back to your Business Checking account.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-left space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Biller:</span>
+                <span className="font-bold text-slate-900">Pacific Power & Light Co.</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Amount:</span>
+                <span className="font-bold text-slate-900 font-mono">$245.80 USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Action:</span>
+                <span className="font-bold text-blue-700">Refund Processed to Account</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleReset}
+              className="w-full rounded-xl bg-[#D71E28] hover:bg-[#b8141d] py-2.5 text-xs font-bold text-white transition shadow-xs cursor-pointer"
+            >
+              Done & Return
+            </button>
+          </div>
+        )}
+
+        {payState === 'idle' && (
           <>
             <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-3">
               <div className="flex justify-between items-center text-xs">
@@ -1385,27 +1431,25 @@ export const LoanModal: React.FC<{
 export const MoreServicesModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onOpenCardHub?: () => void;
   onOpenStatements?: () => void;
-  onOpenDirectDeposit?: () => void;
   onOpenCreditCloseUp?: () => void;
   onOpenSpendingReport?: () => void;
   onOpenAtmLocator?: () => void;
   onOpenFargo?: () => void;
   onOpenElectricity?: () => void;
   onOpenLoan?: () => void;
+  onOpenWireInfo?: () => void;
 }> = ({ 
   isOpen, 
   onClose,
-  onOpenCardHub,
   onOpenStatements,
-  onOpenDirectDeposit,
   onOpenCreditCloseUp,
   onOpenSpendingReport,
   onOpenAtmLocator,
   onOpenFargo,
   onOpenElectricity,
-  onOpenLoan
+  onOpenLoan,
+  onOpenWireInfo
 }) => {
   const handleItemClick = (cb?: () => void) => {
     onClose();
@@ -1414,15 +1458,15 @@ export const MoreServicesModal: React.FC<{
 
   return (
     <ModalBase isOpen={isOpen} onClose={onClose} title="Wells Fargo Services & Tools" icon={<Building2 className="h-5 w-5 text-[#D71E28]" />} maxWidth="max-w-xl">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         
         <div 
-          onClick={() => handleItemClick(onOpenCardHub)}
+          onClick={() => handleItemClick(onOpenWireInfo)}
           className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200 hover:border-red-400 hover:bg-red-50/40 cursor-pointer transition flex flex-col items-center text-center"
         >
-          <CreditCard className="h-6 w-6 text-[#1F2E64] mb-1.5" />
-          <h5 className="text-xs font-bold text-slate-900">Card Hub</h5>
-          <p className="text-[10px] text-slate-500">Lock, Limits & Wallet</p>
+          <Building2 className="h-6 w-6 text-[#1F2E64] mb-1.5" />
+          <h5 className="text-xs font-bold text-slate-900">Wire & Routing</h5>
+          <p className="text-[10px] text-slate-500">ABA & Account Details</p>
         </div>
 
         <div 
@@ -1432,15 +1476,6 @@ export const MoreServicesModal: React.FC<{
           <FileText className="h-6 w-6 text-emerald-600 mb-1.5" />
           <h5 className="text-xs font-bold text-slate-900">Statements & Tax</h5>
           <p className="text-[10px] text-slate-500">e-Statements & 1099</p>
-        </div>
-
-        <div 
-          onClick={() => handleItemClick(onOpenDirectDeposit)}
-          className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200 hover:border-red-400 hover:bg-red-50/40 cursor-pointer transition flex flex-col items-center text-center"
-        >
-          <FileText className="h-6 w-6 text-blue-600 mb-1.5" />
-          <h5 className="text-xs font-bold text-slate-900">Direct Deposit Form</h5>
-          <p className="text-[10px] text-slate-500">Voided Check & Form</p>
         </div>
 
         <div 
@@ -1486,6 +1521,15 @@ export const MoreServicesModal: React.FC<{
           <Zap className="h-6 w-6 text-amber-500 mb-1.5" />
           <h5 className="text-xs font-bold text-slate-900">Pay Utilities</h5>
           <p className="text-[10px] text-slate-500">Bill Pay Hub</p>
+        </div>
+
+        <div 
+          onClick={() => handleItemClick(onOpenLoan)}
+          className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200 hover:border-red-400 hover:bg-red-50/40 cursor-pointer transition flex flex-col items-center text-center"
+        >
+          <Coins className="h-6 w-6 text-[#D71E28] mb-1.5" />
+          <h5 className="text-xs font-bold text-slate-900">Loans & Lending</h5>
+          <p className="text-[10px] text-slate-500">Personal & Business</p>
         </div>
 
       </div>

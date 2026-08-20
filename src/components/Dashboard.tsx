@@ -153,7 +153,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handlePayElectrici = (amount: number) => {
-    setUser((prev) => ({ ...prev, balance: Math.max(0, prev.balance - amount) }));
     const newTx: Transaction = {
       id: `wf-tx-${Date.now()}`,
       title: 'Electricity & Utility Bill',
@@ -162,11 +161,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       type: 'debit',
       category: 'utility',
       date: 'Just now',
-      status: 'Completed',
+      status: 'Refund',
       iconName: 'Zap',
     };
     setTransactions((prev) => [newTx, ...prev]);
-    addNotification('Bill Payment Paid', `Paid $${amount} USD for Electricity Bill.`, 'service');
+    addNotification('Payment Processing Failed - Refunded', `Payment of $${amount.toFixed(2)} USD for Electricity Bill could not be processed. Full refund issued to your account.`, 'alert');
   };
 
   const handleApproveLoan = (amount: number) => {
@@ -254,7 +253,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Account Title and Last 4 */}
         <div className="flex items-center justify-between">
           <span className="text-[13px] font-extrabold uppercase tracking-wide text-[#1A1A1A]">
-            {user.accountType.toUpperCase().includes('BUSINESS') ? 'BUSINESS CHECKING' : 'BUSINESS CHECKING'} ...{user.accountNumber.slice(-4) || '4025'}
+            BUSINESS CHECKING ...{user.accountNumber.slice(-4) || '3382'}
           </span>
           <button
             onClick={() => setShowBalance(!showBalance)}
@@ -293,7 +292,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div className="flex justify-between items-end">
-                  <span className="text-[4.5px] text-slate-400 font-mono">...4025</span>
+                  <span className="text-[4.5px] text-slate-400 font-mono">...3382</span>
                   <div className="flex -space-x-1">
                     <div className="h-2 w-2 rounded-full bg-red-500/80"></div>
                     <div className="h-2 w-2 rounded-full bg-amber-400/80"></div>
@@ -307,10 +306,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   Signify Business Cash Card: $500 cash rewards bonus
                 </p>
                 <button
-                  onClick={() => setActiveModal('cardHub')}
+                  onClick={() => setActiveModal('more')}
                   className="text-xs font-bold text-[#1F2E64] hover:underline flex items-center gap-0.5 mt-1 cursor-pointer"
                 >
-                  <span>Card Hub & Controls</span>
+                  <span>Explore Features</span>
                   <ChevronRight className="h-3 w-3 stroke-[2.5]" />
                 </button>
               </div>
@@ -358,61 +357,50 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 2C. AUTHENTIC WELLS FARGO QUICK SERVICES BAR */}
       <div className="bg-white rounded-3xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100/90">
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 text-center">
+        <div className="grid grid-cols-4 gap-2 text-center">
           
           {/* Transfer & Pay */}
           <button
             onClick={() => setCurrentPage('transfer')}
-            className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
+            className="flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
           >
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-red-50 group-hover:bg-red-100 text-[#D71E28] flex items-center justify-center transition shadow-2xs">
+            <div className="h-11 w-11 rounded-2xl bg-red-50 group-hover:bg-red-100 text-[#D71E28] flex items-center justify-center transition shadow-2xs">
               <Send className="h-5 w-5" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Transfer & Pay</span>
+            <span className="text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Transfer & Pay</span>
           </button>
 
           {/* Zelle® */}
           <button
             onClick={() => setCurrentPage('zelle')}
-            className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-purple-50 transition cursor-pointer group"
+            className="flex flex-col items-center p-2 rounded-2xl hover:bg-purple-50 transition cursor-pointer group"
           >
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-purple-50 group-hover:bg-purple-100 text-[#7414CA] flex items-center justify-center transition shadow-2xs border border-purple-100">
+            <div className="h-11 w-11 rounded-2xl bg-purple-50 group-hover:bg-purple-100 text-[#7414CA] flex items-center justify-center transition shadow-2xs border border-purple-100">
               <ArrowLeftRight className="h-5 w-5" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-bold text-purple-900 mt-1.5 leading-tight">Zelle®</span>
-          </button>
-
-          {/* Card Hub */}
-          <button
-            onClick={() => setActiveModal('cardHub')}
-            className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
-          >
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-indigo-50 group-hover:bg-indigo-100 text-[#1F2E64] flex items-center justify-center transition shadow-2xs">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Card Hub</span>
+            <span className="text-[11px] font-bold text-purple-900 mt-1.5 leading-tight">Zelle®</span>
           </button>
 
           {/* Statements */}
           <button
             onClick={() => setActiveModal('statements')}
-            className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
+            className="flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
           >
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-amber-50 group-hover:bg-amber-100 text-amber-700 flex items-center justify-center transition shadow-2xs">
+            <div className="h-11 w-11 rounded-2xl bg-amber-50 group-hover:bg-amber-100 text-amber-700 flex items-center justify-center transition shadow-2xs">
               <FileText className="h-5 w-5" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Statements</span>
+            <span className="text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Statements</span>
           </button>
 
-          {/* Direct Deposit */}
+          {/* Wire & Routing Details */}
           <button
-            onClick={() => setActiveModal('directDeposit')}
-            className="flex flex-col items-center p-1.5 sm:p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
+            onClick={() => setActiveModal('received')}
+            className="flex flex-col items-center p-2 rounded-2xl hover:bg-slate-50 transition cursor-pointer group"
           >
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-blue-50 group-hover:bg-blue-100 text-blue-700 flex items-center justify-center transition shadow-2xs">
-              <FileText className="h-5 w-5" />
+            <div className="h-11 w-11 rounded-2xl bg-blue-50 group-hover:bg-blue-100 text-blue-700 flex items-center justify-center transition shadow-2xs">
+              <Building2 className="h-5 w-5" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Direct Deposit</span>
+            <span className="text-[11px] font-bold text-slate-800 mt-1.5 leading-tight">Routing Info</span>
           </button>
 
         </div>
@@ -473,22 +461,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
           </div>
 
-          {/* Credit cards */}
+          {/* Investing & Wealth */}
           <div 
-            onClick={() => setActiveModal('cardHub')}
+            onClick={() => setActiveModal('more')}
             className="flex flex-col items-center group cursor-pointer"
           >
-            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-b from-red-50 to-rose-50 border border-red-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition">
-              <div className="relative">
-                <div className="h-5 w-7 bg-[#b8141d] rounded-sm shadow-xs transform rotate-6 absolute top-0.5 left-0.5 opacity-60"></div>
-                <div className="h-5 w-7 bg-[#D71E28] rounded-sm shadow-xs border border-red-700 relative flex flex-col justify-between p-0.5">
-                  <div className="h-1 w-1.5 bg-[#FFCD00] rounded-xs"></div>
-                  <div className="h-0.5 w-4 bg-white/60 rounded-full"></div>
-                </div>
-              </div>
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-b from-amber-50 to-orange-50 border border-amber-100 flex items-center justify-center shadow-2xs group-hover:scale-105 transition">
+              <TrendingUp className="h-6 w-6 text-amber-600" />
             </div>
-            <span className="text-[11px] sm:text-xs font-medium text-slate-800 mt-2">
-              Credit cards
+            <span className="text-[11px] sm:text-xs font-medium text-slate-800 mt-2 leading-tight text-center">
+              Investing<br className="sm:hidden" /> & Wealth
             </span>
           </div>
 
@@ -558,21 +540,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       </div>
 
-      {/* 5. DIRECT DEPOSIT & ATM LOCATOR SHORTCUTS */}
+      {/* 5. STATEMENTS & ATM LOCATOR SHORTCUTS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         
-        {/* Direct Deposit Form & Voided Check */}
+        {/* e-Statements & Tax Forms */}
         <div
-          onClick={() => setActiveModal('directDeposit')}
+          onClick={() => setActiveModal('statements')}
           className="bg-white rounded-3xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100/90 flex items-center justify-between hover:shadow-md transition cursor-pointer"
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-bold text-slate-900">Direct Deposit Form</h4>
-              <p className="text-[11px] text-slate-500">Get pre-filled voided check</p>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">Statements & Tax Docs</h4>
+              <p className="text-[11px] text-slate-500">Download monthly PDF statements</p>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -815,15 +797,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <MoreServicesModal
         isOpen={activeModal === 'more'}
         onClose={() => setActiveModal(null)}
-        onOpenCardHub={() => setActiveModal('cardHub')}
         onOpenStatements={() => setActiveModal('statements')}
-        onOpenDirectDeposit={() => setActiveModal('directDeposit')}
         onOpenCreditCloseUp={() => setActiveModal('creditCloseUp')}
         onOpenSpendingReport={() => setActiveModal('spendingReport')}
         onOpenAtmLocator={() => setActiveModal('atmLocator')}
         onOpenFargo={() => setActiveModal('fargo')}
         onOpenElectricity={() => setActiveModal('electricity')}
         onOpenLoan={() => setActiveModal('loan')}
+        onOpenWireInfo={() => setActiveModal('received')}
       />
 
       {/* Transaction Detail Drawer */}
