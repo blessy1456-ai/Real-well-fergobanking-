@@ -186,7 +186,7 @@ export default function App() {
             // Notification
             addNotification(
               'Transfer Refunded to Account',
-              `Transfer of $${rtx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD could not be completed and has been fully refunded to your Everyday Checking account.`,
+              `Transfer of $${rtx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD could not be completed and has been fully refunded to your Business Checking account.`,
               'service'
             );
           });
