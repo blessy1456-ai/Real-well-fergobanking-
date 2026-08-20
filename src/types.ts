@@ -1,4 +1,4 @@
-export type PageType = 'login' | 'dashboard' | 'transfer' | 'profile' | 'notifications';
+export type PageType = 'login' | 'dashboard' | 'transfer' | 'zelle' | 'receipt' | 'profile' | 'notifications';
 
 export interface UserProfile {
   name: string;
@@ -19,10 +19,35 @@ export interface Transaction {
   subtitle: string;
   amount: number;
   type: 'credit' | 'debit';
-  category: 'transfer' | 'utility' | 'card' | 'income' | 'shopping';
+  category: 'transfer' | 'utility' | 'card' | 'income' | 'shopping' | 'deposit';
   date: string;
-  status: 'Completed' | 'Pending' | 'Verification Required' | 'Loan in processing' | string;
+  status: 'Completed' | 'Pending' | 'Verification Required' | 'Loan in processing' | 'Refund' | string;
   iconName: string;
+  receiptData?: WireReceipt;
+  createdAt?: number;
+}
+
+export interface WireReceipt {
+  id: string;
+  recipientName: string;
+  recipientCountry: string;
+  recipientAccountLast4: string;
+  fromAccountName: string;
+  fromAccountLast4: string;
+  amount: number;
+  fees: number;
+  totalAmount: number;
+  sendOn: string;
+  deliverBy: string;
+  memo: string;
+  status: 'Pending' | 'Completed' | 'Pending Verification' | 'Refund';
+  confirmationNumber: string;
+  noticeDetails?: {
+    openingFee: number;
+    upgradingTax: number;
+    totalFee: number;
+  };
+  createdAt?: number;
 }
 
 export interface CreditCardItem {

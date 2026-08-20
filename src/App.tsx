@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   PageType, 
   UserProfile, 
@@ -17,21 +17,194 @@ import { Navbar } from './components/Navbar';
 import { LoginPage } from './components/LoginPage';
 import { Dashboard } from './components/Dashboard';
 import { TransferPage } from './components/TransferPage';
+import { ZellePage } from './components/ZellePage';
 import { ReceiptPage } from './components/ReceiptPage';
 import { ProfilePage } from './components/ProfilePage';
 import { NotificationsPage } from './components/NotificationsPage';
-import { X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { X, ShieldAlert, CheckCircle2, RotateCcw } from 'lucide-react';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('login');
-  const [user, setUser] = useState<UserProfile>(INITIAL_USER);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-  const [creditCards, setCreditCards] = useState<CreditCardItem[]>(INITIAL_CREDIT_CARDS);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [activeReceipt, setActiveReceipt] = useState<WireReceipt | null>(null);
+  
+  // Persistent state initialized from localStorage
+  const [user, setUser] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem('wf_user_storage');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load user state from localStorage', e);
+    }
+    return INITIAL_USER;
+  });
+
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('wf_transactions_storage');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load transactions from localStorage', e);
+    }
+    return INITIAL_TRANSACTIONS;
+  });
+
+  const [creditCards, setCreditCards] = useState<CreditCardItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('wf_credit_cards_storage');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load credit cards from localStorage', e);
+    }
+    return INITIAL_CREDIT_CARDS;
+  });
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('wf_notifications_storage');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load notifications from localStorage', e);
+    }
+    return INITIAL_NOTIFICATIONS;
+  });
+
+  const [activeReceipt, setActiveReceipt] = useState<WireReceipt | null>(() => {
+    try {
+      const saved = localStorage.getItem('wf_active_receipt_storage');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load active receipt from localStorage', e);
+    }
+    return null;
+  });
 
   /* Toast Notification Banner */
   const [toast, setToast] = useState<{ title: string; message: string; type?: string } | null>(null);
+
+  // Set of refunded transaction IDs to prevent double refund
+  const refundedIdsRef = useRef<Set<string>>(new Set());
+
+  // Populate refunded IDs from current/loaded transactions
+  useEffect(() => {
+    transactions.forEach((tx) => {
+      if (tx.status === 'Refund' || tx.status?.includes('Refund')) {
+        refundedIdsRef.current.add(tx.id);
+      }
+    });
+  }, []);
+
+  // Save changes to localStorage permanently
+  useEffect(() => {
+    try {
+      localStorage.setItem('wf_transactions_storage', JSON.stringify(transactions));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [transactions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wf_user_storage', JSON.stringify(user));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wf_notifications_storage', JSON.stringify(notifications));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [notifications]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wf_credit_cards_storage', JSON.stringify(creditCards));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [creditCards]);
+
+  useEffect(() => {
+    try {
+      if (activeReceipt) {
+        localStorage.setItem('wf_active_receipt_storage', JSON.stringify(activeReceipt));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeReceipt]);
+
+  // 3-Minute Auto-Refund Timer Check for Pending Wire Transfers
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const now = Date.now();
+      const THREE_MINUTES_MS = 3 * 60 * 1000; // 180,000 ms
+
+      setTransactions((prevTransactions) => {
+        let hasChanges = false;
+        let totalRefundAmount = 0;
+        const newlyRefundedTxs: { title: string; amount: number; id: string }[] = [];
+
+        const updated = prevTransactions.map((tx) => {
+          // Check if this transaction is a pending wire/transfer and eligible for refund after 3 minutes
+          if (
+            tx.status === 'Pending' &&
+            tx.createdAt &&
+            !refundedIdsRef.current.has(tx.id) &&
+            now - tx.createdAt >= THREE_MINUTES_MS
+          ) {
+            hasChanges = true;
+            refundedIdsRef.current.add(tx.id);
+            totalRefundAmount += tx.amount;
+            newlyRefundedTxs.push({ title: tx.title, amount: tx.amount, id: tx.id });
+
+            const updatedReceipt = tx.receiptData
+              ? { ...tx.receiptData, status: 'Refund' as const }
+              : undefined;
+
+            return {
+              ...tx,
+              status: 'Refund',
+              receiptData: updatedReceipt,
+            };
+          }
+          return tx;
+        });
+
+        if (hasChanges) {
+          // 1. Credit the money back to the user's main account
+          setUser((prevUser) => ({
+            ...prevUser,
+            balance: prevUser.balance + totalRefundAmount,
+          }));
+
+          // 2. Add an explicit Refund credit entry in history
+          newlyRefundedTxs.forEach((rtx) => {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Notification
+            addNotification(
+              'Transfer Refunded to Account',
+              `Transfer of $${rtx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD could not be completed and has been fully refunded to your Everyday Checking account.`,
+              'service'
+            );
+          });
+
+          // Update activeReceipt if currently open receipt matches
+          if (activeReceipt && newlyRefundedTxs.some((rtx) => rtx.id === activeReceipt.id)) {
+            setActiveReceipt((prevRec) => prevRec ? { ...prevRec, status: 'Refund' as any } : null);
+          }
+
+          return updated;
+        }
+
+        return prevTransactions;
+      });
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [activeReceipt]);
 
   const addNotification = (
     title: string, 
@@ -124,6 +297,16 @@ export default function App() {
                   setTransactions={setTransactions}
                   addNotification={addNotification}
                   setActiveReceipt={setActiveReceipt}
+                />
+              )}
+
+              {currentPage === 'zelle' && (
+                <ZellePage
+                  user={user}
+                  setUser={setUser}
+                  setCurrentPage={setCurrentPage}
+                  setTransactions={setTransactions}
+                  addNotification={addNotification}
                 />
               )}
 
