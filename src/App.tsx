@@ -30,7 +30,13 @@ export default function App() {
   const [user, setUser] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem('wf_user_storage');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.balance === 105754.20 || parsed.balance === 106000 || !parsed.balance) {
+          parsed.balance = 101000.00;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error('Failed to load user state from localStorage', e);
     }
